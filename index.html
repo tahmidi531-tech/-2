@@ -207,24 +207,6 @@
       margin-top: 5px;
     }
 
-    .section-table { width: 100%; border-collapse: collapse; margin-top: 10px; background: #0f172a; border-radius: 8px; overflow: hidden; }
-    .section-table th, .section-table td { border: 1px solid #1e293b; padding: 10px; text-align: left; font-size: 14px; color: #e2e8f0; }
-    .section-table th { background-color: #1e293b; color: #fbbf24; font-weight: 600; }
-    .section-input { width: 100%; padding: 7px; border: 1px solid #334155; border-radius: 6px; background: #0f172a; color: #fff; }
-    
-    .btn-save-table { 
-      background: linear-gradient(135deg, #f59e0b, #d97706); 
-      color: #0f172a; 
-      border: none; 
-      padding: 10px 20px; 
-      font-weight: 700; 
-      border-radius: 8px; 
-      cursor: pointer; 
-      margin-top: 15px; 
-      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-    }
-    .loading { color: #fbbf24; font-weight: bold; margin-bottom: 10px; }
-    
     .diary-card { border: 1px solid #334155; padding: 18px; border-radius: 12px; background: #0f172a; display: inline-block; width: 100%; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.4); margin-bottom: 18px; position: relative; }
     .diary-card h3 { color: #fbbf24; font-size: 18px; margin-bottom: 5px; }
     
@@ -476,22 +458,6 @@
 
   <!-- Teacher Section -->
   <div id="teacher-view" class="card hidden">
-    <h3 style="margin-bottom: 15px; color: #fbbf24;">📊 গুগল শিট কানেক্টেড কন্ট্রোল প্যানেল</h3>
-    <div id="loading-msg" class="loading hidden">গুগল শিটে সেভ হচ্ছে...</div>
-
-    <table class="section-table">
-      <thead>
-        <tr>
-          <th style="width: 30%;">ক্লাস</th>
-          <th>সেকশনগুলোর নাম (কমা দিয়ে আলাদা করুন)</th>
-        </tr>
-      </thead>
-      <tbody id="section-spreadsheet-body"></tbody>
-    </table>
-    <button class="btn-save-table" onclick="saveConfigToGoogleSheet()">🌐 গুগল শিটে সেভ করুন</button>
-
-    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #334155;">
-
     <h3 style="margin-bottom: 15px; color: #fbbf24;">নতুন ডায়েরি আপলোড</h3>
     <div class="form-row">
       <div class="form-group">
@@ -612,7 +578,6 @@
       allClasses.forEach(cls => { schoolSections[cls] = "A, B"; });
     }
     populateClassDropdowns();
-    renderSectionTable();
   }
 
   function populateClassDropdowns() {
@@ -625,53 +590,6 @@
       uploadClass.innerHTML += `<option value="${cls}">${cls}</option>`;
     });
     uploadClass.value = allClasses[0];
-    onClassChange('upload');
-    onClassChange('search');
-  }
-
-  function renderSectionTable() {
-    const tbody = document.getElementById('section-spreadsheet-body');
-    tbody.innerHTML = '';
-    allClasses.forEach(cls => {
-      let currentVal = schoolSections[cls] || "";
-      tbody.innerHTML += `<tr><td><b>${cls}</b></td><td><input type="text" class="section-input" id="sec-input-${cls}" value="${currentVal}"></td></tr>`;
-    });
-  }
-
-  async function saveConfigToGoogleSheet() {
-    if (!isTeacherAuthenticated()) {
-      alert("অনুমোদিত নয়! দয়া করে আবার লগইন করুন।");
-      switchToStudentMode();
-      return;
-    }
-
-    let payloadSections = [];
-    allClasses.forEach(cls => {
-      const val = document.getElementById(`sec-input-${cls}`).value;
-      schoolSections[cls] = val;
-      payloadSections.push({ className: cls, sections: val });
-    });
-
-    let payload = {
-      sections: payloadSections,
-      password: currentAdminPassword
-    };
-
-    document.getElementById('loading-msg').innerText = "গুগল শিটে সেভ হচ্ছে...";
-    document.getElementById('loading-msg').classList.remove('hidden');
-
-    try {
-      await fetch(WEB_APP_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      alert("সফলভাবে গুগল শিটে সেভ হয়েছে!");
-    } catch (error) {
-      alert("সেভ করতে সমস্যা হয়েছে!");
-    }
-    document.getElementById('loading-msg').classList.add('hidden');
     onClassChange('upload');
     onClassChange('search');
   }
