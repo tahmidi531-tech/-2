@@ -41,9 +41,16 @@
       gap: 15px; 
     }
     .header-left { display: flex; align-items: center; gap: 15px; }
+    
+    /* লোগো ডিজাইন - দুটি লোগো পাশাপাশি দেখানোর জন্য */
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
     .school-logo { 
-      width: 65px; 
-      height: 65px; 
+      width: 60px; 
+      height: 60px; 
       object-fit: contain; 
       border-radius: 50%; 
       border: 2px solid #f59e0b; 
@@ -401,7 +408,11 @@
   <!-- Header Section -->
   <div class="header">
     <div class="header-left">
-      <img src="educarelogofinal.png" alt="School Logo" class="school-logo">
+      <!-- দুটি লোগো পাশাপাশি দেখানোর ব্যবস্থা -->
+      <div class="logo-container">
+        <img src="educarelogofinal.png" alt="School Logo" class="school-logo">
+        <img src="digital-logo.png" alt="Diary Logo" class="school-logo">
+      </div>
       <div class="school-title">
         <h1>Educare Ideal School & College</h1>
         <div class="digital-diary-title">📄 ডিজিটাল ক্লাস ডায়েরি (Digital Class Diary)</div>
@@ -725,7 +736,7 @@
             <p style="color:#94a3b8; font-size:13px;">তারিখ: <b>${found.date}</b></p>
             <img src="${found.imageUrl}" class="diary-img" onclick="openLightbox('${found.imageUrl}')" title="বড় করে দেখতে ক্লিক করুন">
             <br>
-            <a href="${found.imageUrl}" download="${fileName}" class="btn-download">📥 ডাউনলোড করুন</a>
+            <a href="${found.imageUrl}" download="${fileName}" class="btn-download" target="_blank">📥 ডাউনলোড করুন</a>
           </div>`;
       });
       display.innerHTML = html;
@@ -749,13 +760,14 @@
           <p style="color:#94a3b8; font-size:13px;">তারিখ: <b>${found.date}</b></p>
           <img src="${found.imageUrl}" class="diary-img" onclick="openLightbox('${found.imageUrl}')" title="বড় করে দেখতে ক্লিক করুন">
           <br>
-          <a href="${found.imageUrl}" download="${fileName}" class="btn-download">📥 ডাউনলোড করুন</a>
+          <a href="${found.imageUrl}" download="${fileName}" class="btn-download" target="_blank">📥 ডাউনলোড করুন</a>
         </div>`;
     });
     display.innerHTML = html;
   }
 
-  function uploadDiary() {
+  // ImgBB ক্লাউড স্টোরেজ দিয়ে আনলিমিটেড ছবি আপলোড ফাংশন
+  async function uploadDiary() {
     if (!isTeacherAuthenticated()) {
       alert("অনুমোদিত নয়! দয়া করে আবার লগইন করুন।");
       switchToStudentMode();
@@ -769,16 +781,45 @@
     const fileInput = document.getElementById('upload-file');
 
     if (!fileInput.files.length) { alert("ছবি সিলেক্ট করুন।"); return; }
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      diaryDatabase.push({ date: uploadDate, className: uploadClass, group: uploadGroup, section: uploadSection, imageUrl: e.target.result });
-      localStorage.setItem('schoolDiaryData', JSON.stringify(diaryDatabase));
-      alert("সফলভাবে আপলোড হয়েছে!");
-      fileInput.value = '';
-      renderTeacherDiaryList();
-    };
-    reader.readAsDataURL(fileInput.files[0]);
+
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const apiKey = "9b7ad7631a6849a88e899d27ab583eb7"; // আপনার ImgBB API Key
+
+    alert("ছবি আপলোড হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন...");
+
+    try {
+      let response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+        method: "POST",
+        body: formData
+      });
+      
+      let result = await response.json();
+
+      if (result.success) {
+        let imageUrl = result.data.url; // ক্লাউড সার্ভারের ছবির স্থায়ী লিংক
+
+        diaryDatabase.push({ 
+          date: uploadDate, 
+          className: uploadClass, 
+          group: uploadGroup, 
+          section: uploadSection, 
+          imageUrl: imageUrl 
+        });
+        
+        localStorage.setItem('schoolDiaryData', JSON.stringify(diaryDatabase));
+        alert("সফলভাবে আপলোড হয়েছে!");
+        fileInput.value = '';
+        renderTeacherDiaryList();
+      } else {
+        alert("ছবি আপলোড ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("নেটওয়ার্ক সমস্যা বা সার্ভার এরর!");
+    }
   }
 
   function renderTeacherDiaryList() {
@@ -803,7 +844,7 @@
           <p style="color:#94a3b8; font-size: 13px;">তারিখ: <b>${item.date}</b></p>
           <img src="${item.imageUrl}" class="diary-img" onclick="openLightbox('${item.imageUrl}')" title="বড় করে দেখতে ক্লিক করুন">
           <br>
-          <a href="${item.imageUrl}" download="${fileName}" class="btn-download">📥 ডাউনলোড করুন</a>
+          <a href="${item.imageUrl}" download="${fileName}" class="btn-download" target="_blank">📥 ডাউনলোড করুন</a>
           <button class="btn-delete" onclick="deleteDiary(${item.originalIndex})">🗑️ ডিলিট করুন</button>
         </div>
       `;
