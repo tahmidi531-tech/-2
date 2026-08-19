@@ -42,7 +42,6 @@
     }
     .header-left { display: flex; align-items: center; gap: 15px; }
     
-    /* লোগো ডিজাইন - দুটি লোগো পাশাপাশি দেখানোর জন্য */
     .logo-container {
       display: flex;
       align-items: center;
@@ -59,7 +58,6 @@
       box-shadow: 0 0 15px rgba(245, 158, 11, 0.35); 
     }
     
-    /* স্কুল নাম */
     .school-title h1 { 
       font-family: 'Cinzel', serif;
       font-size: 21px; 
@@ -69,7 +67,6 @@
       margin-bottom: 4px;
     }
 
-    /* প্রিমিয়াম শাইন অ্যান্ড গ্লো অ্যানিমেশন */
     .digital-diary-title {
       font-family: 'Hind Siliguri', sans-serif;
       font-size: 14.5px;
@@ -92,7 +89,6 @@
       to { text-shadow: 0 0 12px rgba(255, 255, 255, 0.7), 0 0 20px rgba(245, 158, 11, 0.6); }
     }
 
-    /* ফেসবুক পেজ বাটন */
     .btn-fb {
       background: linear-gradient(135deg, #2563eb, #1d4ed8);
       color: #ffffff;
@@ -291,6 +287,28 @@
       cursor: pointer; font-weight: bold; box-shadow: 0 3px 10px rgba(239, 68, 68, 0.4);
     }
 
+    /* লোডিং স্পিনার ওভারলে স্টাইল */
+    .loading-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(15, 23, 42, 0.8); display: flex; flex-direction: column;
+      justify-content: center; align-items: center; z-index: 999999;
+      backdrop-filter: blur(6px); opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+    }
+    .loading-overlay.active { opacity: 1; pointer-events: auto; }
+    .spinner {
+      width: 55px; height: 55px; border: 5px solid rgba(245, 158, 11, 0.2);
+      border-top: 5px solid #f59e0b; border-radius: 50%;
+      animation: spin 0.9s linear infinite; margin-bottom: 15px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loading-text {
+      color: #fbbf24; font-size: 16px; font-weight: 600; letter-spacing: 0.5px;
+      text-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+    }
+
     /* Modal / Popup CSS */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -312,7 +330,6 @@
     .modal-btn-submit { background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; box-shadow: 0 3px 10px rgba(245, 158, 11, 0.3); }
     .modal-btn-cancel { background-color: #334155; color: #cbd5e1; border: 1px solid #475569; }
 
-    /* ভুল পাসওয়ার্ড দিলে লাল রঙ ধারণ করার ক্লাসসমূহ */
     .modal-box.error-box {
       border-color: #ef4444 !important;
       box-shadow: 0 10px 30px rgba(239, 68, 68, 0.35) !important;
@@ -326,7 +343,6 @@
       color: #f87171 !important;
     }
 
-    /* Footer / Contact Us Section Style */
     .footer-section {
       margin-top: 35px;
       border-top: 2px solid rgba(245, 158, 11, 0.2);
@@ -383,6 +399,12 @@
 </head>
 <body>
 
+<!-- লোডিং স্পিনার ওভারলে -->
+<div id="loading-overlay" class="loading-overlay">
+  <div class="spinner"></div>
+  <div id="loading-text" class="loading-text">অনুগ্রহ করে অপেক্ষা করুন...</div>
+</div>
+
 <!-- Fullscreen Lightbox Modal -->
 <div id="lightbox" class="lightbox-overlay" onclick="closeLightbox()">
   <div class="lightbox-content" onclick="event.stopPropagation()">
@@ -408,7 +430,6 @@
   <!-- Header Section -->
   <div class="header">
     <div class="header-left">
-      <!-- দুটি লোগো পাশাপাশি দেখানোর ব্যবস্থা -->
       <div class="logo-container">
         <img src="educarelogofinal.png" alt="School Logo" class="school-logo">
         <img src="digital-logo.png" alt="Diary Logo" class="school-logo">
@@ -551,7 +572,17 @@
   
   let schoolSections = {};
   let currentAdminPassword = "1234";
-  let diaryDatabase = JSON.parse(localStorage.getItem('schoolDiaryData')) || [];
+  let diaryDatabase = [];
+
+  // লোডিং স্পিনার কন্ট্রোল ফাংশন
+  function showLoading(text = "অনুগ্রহ করে অপেক্ষা করুন...") {
+    document.getElementById('loading-text').innerText = text;
+    document.getElementById('loading-overlay').classList.add('active');
+  }
+
+  function hideLoading() {
+    document.getElementById('loading-overlay').classList.remove('active');
+  }
 
   function playBeep() {
     try {
@@ -571,7 +602,8 @@
     } catch (e) {}
   }
 
-  async function fetchConfigFromSheet() {
+  async function fetchConfigFromSheet(showSpinner = false) {
+    if (showSpinner) showLoading("ডেটা লোড হচ্ছে...");
     try {
       let response = await fetch(WEB_APP_URL);
       let data = await response.json();
@@ -583,11 +615,16 @@
       if(data.password) {
         currentAdminPassword = data.password.toString().trim();
       }
+      if(data.diaries) {
+        diaryDatabase = data.diaries;
+      }
 
       allClasses.forEach(cls => { if (!schoolSections[cls]) schoolSections[cls] = "A, B"; });
     } catch (error) {
+      console.error("ডেটা লোড করতে সমস্যা হয়েছে:", error);
       allClasses.forEach(cls => { schoolSections[cls] = "A, B"; });
     }
+    if (showSpinner) hideLoading();
     populateClassDropdowns();
   }
 
@@ -692,12 +729,13 @@
     }
   }
 
-  function switchToTeacherMode() {
+  async function switchToTeacherMode() {
     document.getElementById('student-view').classList.add('hidden');
     document.getElementById('teacher-view').classList.remove('hidden');
     document.getElementById('student-mode-tab').classList.remove('active-mode');
     document.getElementById('teacher-mode-tab').classList.add('active-mode');
     document.getElementById('teacher-mode-tab').innerText = "🔓 Teacher Mode (Logout)";
+    await fetchConfigFromSheet(true);
     renderTeacherDiaryList();
   }
 
@@ -711,7 +749,11 @@
     document.getElementById('diary-display').innerHTML = `<p class="no-data" style="color: #94a3b8;">কোনো ডায়েরি পোস্ট পাওয়া যায়নি।</p>`;
   }
 
-  function searchDiary() {
+  async function searchDiary() {
+    showLoading("ডায়েরি খোঁজা হচ্ছে...");
+    await fetchConfigFromSheet(false);
+    hideLoading();
+
     const selectedDate = document.getElementById('search-date').value;
     const selectedClass = document.getElementById('search-class').value;
     const selectedGroup = document.getElementById('search-group').value;
@@ -719,7 +761,8 @@
     const display = document.getElementById('diary-display');
 
     let filtered = diaryDatabase.filter(i => {
-      if (selectedDate && i.date !== selectedDate) return false;
+      const itemDateOnly = i.date ? i.date.split('T')[0] : '';
+      if (selectedDate && itemDateOnly !== selectedDate && i.date !== selectedDate) return false;
       if (selectedClass && i.className !== selectedClass) return false;
       if (selectedGroup && i.group !== selectedGroup) return false;
       if (selectedSection && i.section !== selectedSection) return false;
@@ -729,11 +772,12 @@
     if (filtered.length > 0) {
       let html = '';
       filtered.forEach(found => {
-        const fileName = `Diary_${found.className}_${found.section}_${found.date}.png`;
+        const cleanDateStr = found.date ? found.date.split('T')[0] : '';
+        const fileName = `Diary_${found.className}_${found.section}_${cleanDateStr}.png`;
         html += `
           <div class="diary-card">
             <h3>${found.className} - ${found.group} (${found.section})</h3>
-            <p style="color:#94a3b8; font-size:13px;">তারিখ: <b>${found.date}</b></p>
+            <p style="color:#94a3b8; font-size:13px;">তারিখ: <b>${cleanDateStr}</b></p>
             <img src="${found.imageUrl}" class="diary-img" onclick="openLightbox('${found.imageUrl}')" title="বড় করে দেখতে ক্লিক করুন">
             <br>
             <a href="${found.imageUrl}" download="${fileName}" class="btn-download" target="_blank">📥 ডাউনলোড করুন</a>
@@ -745,7 +789,11 @@
     }
   }
 
-  function showAllDiaries() {
+  async function showAllDiaries() {
+    showLoading("সব ডায়েরি লোড হচ্ছে...");
+    await fetchConfigFromSheet(false);
+    hideLoading();
+
     const display = document.getElementById('diary-display');
     if (diaryDatabase.length === 0) {
       display.innerHTML = `<p class="no-data">কোনো ডায়েরি পোস্ট পাওয়া যায়নি।</p>`;
@@ -753,11 +801,12 @@
     }
     let html = '';
     diaryDatabase.forEach(found => {
-      const fileName = `Diary_${found.className}_${found.section}_${found.date}.png`;
+      const cleanDateStr = found.date ? found.date.split('T')[0] : '';
+      const fileName = `Diary_${found.className}_${found.section}_${cleanDateStr}.png`;
       html += `
         <div class="diary-card">
           <h3>${found.className} - ${found.group} (${found.section})</h3>
-          <p style="color:#94a3b8; font-size:13px;">তারিখ: <b>${found.date}</b></p>
+          <p style="color:#94a3b8; font-size:13px;">তারিখ: <b>${cleanDateStr}</b></p>
           <img src="${found.imageUrl}" class="diary-img" onclick="openLightbox('${found.imageUrl}')" title="বড় করে দেখতে ক্লিক করুন">
           <br>
           <a href="${found.imageUrl}" download="${fileName}" class="btn-download" target="_blank">📥 ডাউনলোড করুন</a>
@@ -766,7 +815,6 @@
     display.innerHTML = html;
   }
 
-  // ImgBB ক্লাউড স্টোরেজ দিয়ে আনলিমিটেড ছবি আপলোড ফাংশন
   async function uploadDiary() {
     if (!isTeacherAuthenticated()) {
       alert("অনুমোদিত নয়! দয়া করে আবার লগইন করুন।");
@@ -786,9 +834,9 @@
     const formData = new FormData();
     formData.append("image", file);
 
-    const apiKey = "9b7ad7631a6849a88e899d27ab583eb7"; // আপনার ImgBB API Key
+    const apiKey = "9b7ad7631a6849a88e899d27ab583eb7";
 
-    alert("ছবি আপলোড হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন...");
+    showLoading("ছবি আপলোড হচ্ছে এবং সার্ভারে সেভ হচ্ছে...");
 
     try {
       let response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
@@ -799,36 +847,54 @@
       let result = await response.json();
 
       if (result.success) {
-        let imageUrl = result.data.url; // ক্লাউড সার্ভারের ছবির স্থায়ী লিংক
+        let imageUrl = result.data.url;
 
-        diaryDatabase.push({ 
-          date: uploadDate, 
-          className: uploadClass, 
-          group: uploadGroup, 
-          section: uploadSection, 
-          imageUrl: imageUrl 
+        let saveResponse = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: "addDiary",
+            date: uploadDate,
+            className: uploadClass,
+            group: uploadGroup,
+            section: uploadSection,
+            imageUrl: imageUrl
+          })
         });
-        
-        localStorage.setItem('schoolDiaryData', JSON.stringify(diaryDatabase));
-        alert("সফলভাবে আপলোড হয়েছে!");
-        fileInput.value = '';
-        renderTeacherDiaryList();
+
+        let saveResult = await saveResponse.json();
+        hideLoading();
+
+        if (saveResult.status === "success") {
+          alert("সফলভাবে আপলোড এবং শিটে সেভ হয়েছে!");
+          fileInput.value = '';
+          await fetchConfigFromSheet(false);
+          renderTeacherDiaryList();
+        } else {
+          alert("ছবি আপলোড হলেও শিটে সেভ করতে সমস্যা হয়েছে।");
+        }
+
       } else {
+        hideLoading();
         alert("ছবি আপলোড ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");
       }
     } catch (error) {
+      hideLoading();
       console.error(error);
       alert("নেটওয়ার্ক সমস্যা বা সার্ভার এরর!");
     }
   }
 
-  function renderTeacherDiaryList() {
+  async function renderTeacherDiaryList() {
     if (!isTeacherAuthenticated()) return;
 
     const manageDate = document.getElementById('manage-date').value;
     const listContainer = document.getElementById('teacher-diary-list');
     
-    const filteredDiaries = diaryDatabase.map((item, index) => ({ ...item, originalIndex: index })).filter(i => i.date === manageDate);
+    const filteredDiaries = diaryDatabase.map((item, index) => ({ ...item, originalIndex: index })).filter(i => {
+      if (!i.date) return false;
+      const itemDateOnly = i.date.split('T')[0];
+      return itemDateOnly === manageDate || i.date === manageDate;
+    });
 
     if (filteredDiaries.length === 0) {
       listContainer.innerHTML = `<p style="color: #94a3b8; text-align: center; margin-top: 15px; font-size: 14px;">এই তারিখে কোনো ডায়েরি আপলোড করা হয়নি।</p>`;
@@ -837,11 +903,12 @@
 
     let html = '';
     filteredDiaries.forEach(item => {
-      const fileName = `Diary_${item.className}_${item.section}_${item.date}.png`;
+      const cleanDateStr = item.date ? item.date.split('T')[0] : '';
+      const fileName = `Diary_${item.className}_${item.section}_${cleanDateStr}.png`;
       html += `
         <div class="diary-card">
           <h3>${item.className} - ${item.group} (${item.section})</h3>
-          <p style="color:#94a3b8; font-size: 13px;">তারিখ: <b>${item.date}</b></p>
+          <p style="color:#94a3b8; font-size: 13px;">তারিখ: <b>${cleanDateStr}</b></p>
           <img src="${item.imageUrl}" class="diary-img" onclick="openLightbox('${item.imageUrl}')" title="বড় করে দেখতে ক্লিক করুন">
           <br>
           <a href="${item.imageUrl}" download="${fileName}" class="btn-download" target="_blank">📥 ডাউনলোড করুন</a>
@@ -852,7 +919,7 @@
     listContainer.innerHTML = html;
   }
 
-  function deleteDiary(index) {
+  async function deleteDiary(index) {
     if (!isTeacherAuthenticated()) {
       alert("অনুমোদিত নয়!");
       switchToStudentMode();
@@ -861,9 +928,33 @@
 
     if (confirm("আপনি কি নিশ্চিতভাবে এই ডায়েরিটি ডিলিট করতে চান?")) {
       diaryDatabase.splice(index, 1);
-      localStorage.setItem('schoolDiaryData', JSON.stringify(diaryDatabase));
-      alert("ডায়েরি সফলভাবে ডিলিট করা হয়েছে!");
-      renderTeacherDiaryList();
+      showLoading("ডায়েরি ডিলিট করা হচ্ছে...");
+
+      try {
+        let response = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: "updateDiaries",
+            diaries: diaryDatabase
+          })
+        });
+
+        let result = await response.json();
+        hideLoading();
+
+        if (result.status === "success") {
+          alert("ডায়েরি সফলভাবে ডিলিট করা হয়েছে!");
+          await fetchConfigFromSheet(false);
+          renderTeacherDiaryList();
+        } else {
+          alert("ডিলিট করতে সমস্যা হয়েছে।");
+        }
+      }
+      catch (error) {
+        hideLoading();
+        console.error(error);
+        alert("সার্ভার কানেকশনে সমস্যা!");
+      }
     }
   }
 
@@ -880,7 +971,7 @@
   }
 
   window.onload = function() {
-    fetchConfigFromSheet().then(() => {
+    fetchConfigFromSheet(true).then(() => {
       if (isTeacherAuthenticated()) {
         switchToTeacherMode();
       }
